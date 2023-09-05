@@ -51,18 +51,18 @@ class PygameEnvironment():
     def graphics(self):
         self.s.blit(self.bg, [0,0])
         for node in Node.node_list:
-            if node.coords[0] + 150 > 0 and node.coords[0] < self.sx:
+            if node.coords[0] + node.rendered_text.get_width()*1.5 + node.width > 0 and node.coords[0] - node.rendered_text.get_width()/2 < self.sx:
                 if node.coords[1] + 75 > 0 and node.coords[1] < self.sy:
                     node.draw(self.s)
 
             if pygame.key.get_pressed()[pygame.K_LEFT]:
-                node.coords[0] += 50
+                node.coords[0] += 20
             if pygame.key.get_pressed()[pygame.K_RIGHT]:
-                node.coords[0] -= 50
+                node.coords[0] -= 20
             if pygame.key.get_pressed()[pygame.K_DOWN]:
-                node.coords[1] -= 50
+                node.coords[1] -= 20
             if pygame.key.get_pressed()[pygame.K_UP]:
-                node.coords[1] += 50
+                node.coords[1] += 20
         if pygame.key.get_pressed()[pygame.K_ESCAPE]:
             Node.explored_nodes.clear()
             Node.node_list.clear()
@@ -81,6 +81,8 @@ class Node():
         self.color = color
         self.coords = coords
         self.parent = parent
+        self.width = 10
+        self.height = 75
 
         self.origin_distance = sitrep[0]
         self.sitrep = sitrep
@@ -89,7 +91,12 @@ class Node():
         elif self.is_dead_node() == True: 
             self.color = 'RED'
             Node.dead_nodes.append(self.text)
-        
+
+        self.rendered_text = pygame.font.SysFont('sans', 20)
+        self.rendered_text = self.rendered_text.render(self.text, True, self.color)
+
+
+
         Node.coords_list.append(self.coords)
         Node.node_list.append(self)
         if self.text != gv.finish_text:
@@ -109,14 +116,11 @@ class Node():
         return False
 
     def draw(self, screen):
-        self.rendered_text = pygame.font.SysFont('sans', 20)
-        self.rendered_text = self.rendered_text.render(self.text, True, self.color)
-        pygame.draw.rect(screen, self.color, [self.coords[0], self.coords[1], 150, 75], 1, 200)
-        screen.blit(self.rendered_text, [self.coords[0] + 75 -  self.rendered_text.get_width()/2, self.coords[1] + 37.5 - self.rendered_text.get_height()/2])
-        self.rect = pygame.rect.Rect(self.coords[0], self.coords[1], 150, 75)
+        pygame.draw.rect(screen, self.color, [self.coords[0] + self.rendered_text.get_width()/2, self.coords[1], self.width + self.rendered_text.get_width(), 75], 1, 200)
+        screen.blit(self.rendered_text, [self.coords[0] + self.width/2 + self.rendered_text.get_width()/2, self.coords[1] + self.height/2 - self.rendered_text.get_height()/2])
 
         if self.parent != None:
-            pygame.draw.line(screen, 'BLACK', [self.coords[0], self.coords[1]+37.5], [self.parent.coords[0]+150, self.parent.coords[1]+37.5])
+            pygame.draw.line(screen, 'BLACK', [self.coords[0] + self.rendered_text.get_width()/2, self.coords[1]+self.height/2], [self.parent.coords[0]  + self.parent.width + self.parent.rendered_text.get_width()*1.5, self.parent.coords[1]+self.height/2])
 
     def find_valid_branches(self):
         new_sitrep = [0, [self.sitrep[1][:], self.sitrep[2][:]]] 
@@ -159,22 +163,23 @@ class Node():
         node_text = ' '.join(sorted(sitrep[1][0])) + ' / ' + ' '.join(sorted(sitrep[1][1]))
         if self.origin_distance+1 % 2 == 0:
             if [node_text, 0] not in Node.explored_nodes and node_text not in Node.n_string_list:
-                if [self.coords[0] + 250, self.coords[1] + Node.y_offset] not in Node.coords_list: 
-                    Node([self.origin_distance+1, sitrep[1][0], sitrep[1][1]], [self.coords[0] + 250, self.coords[1] + Node.y_offset], boat_capacity=gv.boat_slots, parent=self)
+                if [self.coords[0] + self.width + self.rendered_text.get_width() + 50, self.coords[1] + Node.y_offset] not in Node.coords_list: 
+                    Node([self.origin_distance+1, sitrep[1][0], sitrep[1][1]], [self.coords[0] + self.width + self.rendered_text.get_width() + 50, self.coords[1] + Node.y_offset], boat_capacity=gv.boat_slots, parent=self)
                     Node.y_offset = 0
                 else: 
                     Node.y_offset += 90
                     self.place_node(sitrep)
         else:
             if [node_text, 1] not in Node.explored_nodes and node_text not in Node.n_string_list:
-                if [self.coords[0] + 250, self.coords[1] + Node.y_offset] not in Node.coords_list: 
-                    Node([self.origin_distance+1, sitrep[1][0], sitrep[1][1]], [self.coords[0] + 250, self.coords[1] + Node.y_offset], boat_capacity=gv.boat_slots, parent=self)
+                if [self.coords[0] + self.width + self.rendered_text.get_width() + 50, self.coords[1] + Node.y_offset] not in Node.coords_list: 
+                    Node([self.origin_distance+1, sitrep[1][0], sitrep[1][1]], [self.coords[0] + self.width + self.rendered_text.get_width() + 50, self.coords[1] + Node.y_offset], boat_capacity=gv.boat_slots, parent=self)
                     Node.y_offset = 0
                 else: 
                     Node.y_offset += 90
                     self.place_node(sitrep)
 
 def run_siimulation():
+    pygame.font.init()
     c = input('Cannibals: ')
     v = input('Vegetarians: ')
     gv.boat_slots = int(input('Boat_slots: '))
@@ -194,7 +199,7 @@ def run_siimulation():
         if character == 'V':
             gv.finish_text += ' V'
     gv.finish_text += ' b'
-    print(gv.finish_text)
+    print('Target: ' + gv.finish_text)
 
     test_node = Node(gv.starting_sitrep, [50,50], gv.boat_slots)
     test_node.generate_branch_nodes()
@@ -202,6 +207,7 @@ def run_siimulation():
     i = 0
     for node in Node.node_list:
         i += 1
+        if i >= depth: break
         if node.text not in Node.dead_nodes and node.text != gv.finish_text:
             if node.origin_distance % 2 == 0:
                 if [node.text, 0] not in Node.explored_nodes:
@@ -209,7 +215,7 @@ def run_siimulation():
             else: 
                 if [node.text, 1] not in Node.explored_nodes:
                     node.generate_branch_nodes()
-        if i > depth: break
+        
 
     PygameEnvironment(1200,800,'River Problem')
 run_siimulation()
